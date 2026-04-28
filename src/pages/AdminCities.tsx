@@ -53,11 +53,14 @@ export default function AdminCities() {
 
   const addSpecificDate = () => {
     if (!newDate) return;
-    if (formData.specificDates?.includes(newDate)) return;
-    setFormData(prev => ({
-      ...prev,
-      specificDates: [...(prev.specificDates || []), newDate].sort()
-    }));
+    setFormData(prev => {
+      const currentDates = prev.specificDates || [];
+      if (currentDates.includes(newDate)) return prev;
+      return {
+        ...prev,
+        specificDates: [...currentDates, newDate].sort()
+      };
+    });
     setNewDate('');
   };
 
@@ -70,11 +73,14 @@ export default function AdminCities() {
 
   const addHour = () => {
     if (!newHour) return;
-    if (formData.availableHours?.includes(newHour)) return;
-    setFormData(prev => ({
-      ...prev,
-      availableHours: [...(prev.availableHours || []), newHour].sort()
-    }));
+    setFormData(prev => {
+      const currentHours = prev.availableHours || [];
+      if (currentHours.includes(newHour)) return prev;
+      return {
+        ...prev,
+        availableHours: [...currentHours, newHour].sort()
+      };
+    });
     setNewHour('');
   };
 
@@ -86,11 +92,15 @@ export default function AdminCities() {
   };
 
   const openModal = (city?: City) => {
+    setNewDate('');
+    setNewHour('');
     if (city) {
       setEditingCity(city);
       setFormData({
         ...city,
-        specificDates: city.specificDates || []
+        deliveryDays: city.deliveryDays ? [...city.deliveryDays] : [],
+        availableHours: city.availableHours ? [...city.availableHours] : [],
+        specificDates: city.specificDates ? [...city.specificDates] : []
       });
     } else {
       setEditingCity(null);
@@ -109,6 +119,8 @@ export default function AdminCities() {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingCity(null);
+    setNewDate('');
+    setNewHour('');
   };
 
   return (
@@ -160,8 +172,18 @@ export default function AdminCities() {
                     ))}
                   </div>
                   {city.specificDates && city.specificDates.length > 0 && (
-                    <div className="text-[10px] text-gray-400">
-                      + {city.specificDates.length} datas específicas
+                    <div className="pt-2 border-t border-gray-50">
+                      <p className="text-[10px] font-bold text-brand-orange uppercase mb-1">Datas Extras:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {city.specificDates.slice(0, 5).map(date => (
+                          <span key={date} className="text-[9px] bg-orange-50 text-brand-orange px-1.5 py-0.5 rounded-md font-bold">
+                            {format(parseISO(date), "dd/MM")}
+                          </span>
+                        ))}
+                        {city.specificDates.length > 5 && (
+                          <span className="text-[9px] text-gray-400">+{city.specificDates.length - 5}</span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -193,7 +215,9 @@ export default function AdminCities() {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
           <div className="relative bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-              <h2 className="text-xl font-bold">{editingCity ? 'Editar Cidade' : 'Nova Cidade'}</h2>
+              <h2 className="text-xl font-bold">
+                {editingCity ? `Editar Cidade: ${editingCity.name}` : 'Nova Cidade'}
+              </h2>
               <button onClick={closeModal} className="p-2 hover:bg-gray-200 rounded-full"><X size={20} /></button>
             </div>
 

@@ -21,27 +21,6 @@ export default function AdminProducts() {
     isActive: true,
   });
 
-  const [globalImageUrl, setGlobalImageUrl] = useState('');
-  const [isUpdatingAll, setIsUpdatingAll] = useState(false);
-
-  const handleApplyImageToAll = async () => {
-    if (!globalImageUrl) return;
-    if (!confirm('Deseja realmente aplicar esta imagem a TODOS os produtos do catálogo?')) return;
-
-    setIsUpdatingAll(true);
-    try {
-      const promises = products.map(p => update(p.id, { imageUrl: globalImageUrl }));
-      await Promise.all(promises);
-      alert('Todos os produtos foram atualizados!');
-      setGlobalImageUrl('');
-    } catch (error) {
-      console.error('Erro ao atualizar imagens:', error);
-      alert('Ocorreu um erro ao atualizar os produtos.');
-    } finally {
-      setIsUpdatingAll(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingProduct) {
@@ -96,30 +75,6 @@ export default function AdminProducts() {
           <Plus size={20} />
           Novo Produto
         </button>
-      </div>
-
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          <Edit2 size={18} className="text-brand-orange" />
-          Ação em Massa: Atualizar Todas as Imagens
-        </h2>
-        <p className="text-sm text-gray-500">Cole o link da imagem (URL) e aplique a todo o seu catálogo de uma só vez.</p>
-        <div className="flex gap-4">
-          <input
-            type="url"
-            placeholder="Cole aqui o link da imagem (ex: https://...)"
-            className="flex-grow px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-brand-orange"
-            value={globalImageUrl}
-            onChange={(e) => setGlobalImageUrl(e.target.value)}
-          />
-          <button
-            onClick={handleApplyImageToAll}
-            disabled={!globalImageUrl || isUpdatingAll}
-            className="px-6 py-3 bg-brand-brown text-white rounded-xl font-bold hover:bg-brand-brown/90 transition-all disabled:opacity-50"
-          >
-            {isUpdatingAll ? 'Atualizando...' : 'Aplicar em Todos'}
-          </button>
-        </div>
       </div>
 
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">

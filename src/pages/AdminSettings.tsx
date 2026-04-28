@@ -49,7 +49,7 @@ export default function AdminSettings() {
     await save({
       instagramUrl: formData.get('instagramUrl') as string,
       whatsappUrl: formData.get('whatsappUrl') as string,
-      whatsappNumber: formData.get('whatsappUrl') as string,
+      whatsappNumber: formData.get('whatsappNumber') as string,
       followerCount: parseInt(formData.get('followerCount') as string),
       dailyProductionLimit: parseInt(formData.get('dailyProductionLimit') as string),
       shopAddress: formData.get('shopAddress') as string,
@@ -145,12 +145,22 @@ export default function AdminSettings() {
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">WhatsApp (DDD + Número)</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">WhatsApp do Sid (Somente números)</label>
+              <input
+                name="whatsappNumber"
+                type="text"
+                defaultValue={settings?.whatsappNumber}
+                placeholder="Ex: 5511999999999"
+                className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-brand-orange"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Link Curto do WhatsApp (Opcional)</label>
               <input
                 name="whatsappUrl"
                 type="text"
                 defaultValue={settings?.whatsappUrl}
-                placeholder="Ex: 5511999999999"
+                placeholder="Ex: docurasdosid"
                 className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-brand-orange"
               />
             </div>

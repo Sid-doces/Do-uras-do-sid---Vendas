@@ -124,13 +124,18 @@ export default function Cart() {
     try {
       await addOrder(orderData);
       
-      for (const item of items) {
-        const productRef = doc(db, 'products', item.productId);
-        const productSnap = await getDocFromServer(productRef);
-        if (productSnap.exists()) {
-          const currentStock = productSnap.data().stock || 0;
-          await updateDoc(productRef, { stock: Math.max(0, currentStock - item.quantity) });
+      // Try to update stock, but don't block the order if it fails
+      try {
+        for (const item of items) {
+          const productRef = doc(db, 'products', item.productId);
+          const productSnap = await getDocFromServer(productRef);
+          if (productSnap.exists()) {
+            const currentStock = productSnap.data().stock || 0;
+            await updateDoc(productRef, { stock: Math.max(0, currentStock - item.quantity) });
+          }
         }
+      } catch (stockError) {
+        console.error("Stock update failed", stockError);
       }
       
       const itemsText = items.map(i => `• ${i.quantity}x ${i.name}`).join('\n');
@@ -139,7 +144,14 @@ export default function Cart() {
         : `*Entrega via Rota*\nCidade: ${selectedCity?.name}`;
 
       const text = `🍰 *NOVO PEDIDO - Doçuras do Sid*\n\n*Cliente:* ${formData.name}\n*Fone:* ${formData.phone}\n\n*Itens:*\n${itemsText}\n\n*Total:* R$ ${finalTotal.toFixed(2)}\n\n*Entrega:*\n${deliveryInfo}\n*Endereço:* ${formData.address}\n*Data:* ${formData.deliveryDate}\n*Horário:* ${formData.deliveryTime}\n\n_Por favor, confirme meu pedido!_`;
-      const url = `https://wa.me/${settings?.whatsappUrl || ''}?text=${encodeURIComponent(text)}`;
+      
+      let whatsappContact = settings?.whatsappNumber || settings?.whatsappUrl || '';
+      // If it contains only digits (or starts with digits), clean it. Otherwise use as is (slug)
+      if (/^\d+/.test(whatsappContact.replace(/\+/g, ''))) {
+        whatsappContact = whatsappContact.replace(/\D/g, '');
+      }
+      
+      const url = `https://wa.me/${whatsappContact}?text=${encodeURIComponent(text)}`;
       
       window.open(url, '_blank');
       clearCart();
