@@ -66,13 +66,19 @@ export default function Shop() {
               exit={{ opacity: 0, scale: 0.9 }}
               className="card flex flex-col h-full"
             >
-              <div className="aspect-square relative overflow-hidden">
-                <img 
-                  src={product.imageUrl} 
-                  alt={product.name} 
-                  className="w-full h-full object-cover" 
-                  referrerPolicy="no-referrer"
-                />
+              <div className="aspect-square relative overflow-hidden bg-gray-100">
+                {product.imageUrl ? (
+                  <img 
+                    src={product.imageUrl} 
+                    alt={product.name} 
+                    className="w-full h-full object-cover" 
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-300">
+                    <Star size={40} />
+                  </div>
+                )}
                 {product.isBestSeller && (
                   <div className="absolute top-4 left-4 bg-brand-orange text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
                     <Star size={10} fill="currentColor" /> MAIS PEDIDO

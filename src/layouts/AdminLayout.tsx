@@ -54,7 +54,13 @@ export default function AdminLayout() {
 
       <div className="p-4 border-t border-white/10">
         <div className="flex items-center gap-3 px-4 py-2 mb-4">
-          <img src={user?.photoURL || ''} alt="" className="w-8 h-8 rounded-full bg-brand-orange" />
+          {user?.photoURL ? (
+            <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full bg-brand-orange" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-brand-orange flex items-center justify-center text-white text-xs font-bold">
+              {user?.displayName?.[0] || 'A'}
+            </div>
+          )}
           <div className="overflow-hidden">
             <p className="text-sm font-bold truncate">{user?.displayName || 'Admin'}</p>
             <p className="text-xs opacity-60 truncate">{user?.email}</p>

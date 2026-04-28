@@ -9,6 +9,7 @@ export default function AdminSettings() {
   const [ranges, setRanges] = useState<DeliveryRange[]>([]);
   const [heroUrl, setHeroUrl] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [banners, setBanners] = useState<string[]>([]);
 
   useEffect(() => {
     if (settings?.deliveryRanges) {
@@ -16,7 +17,16 @@ export default function AdminSettings() {
     }
     if (settings?.heroImageUrl) setHeroUrl(settings.heroImageUrl);
     if (settings?.logoUrl) setLogoUrl(settings.logoUrl);
+    if (settings?.banners) setBanners(settings.banners);
   }, [settings]);
+
+  const addBanner = (url: string) => {
+    if (url) setBanners([...banners, url]);
+  };
+
+  const removeBanner = (index: number) => {
+    setBanners(banners.filter((_, i) => i !== index));
+  };
 
   const addRange = () => {
     setRanges([...ranges, { minKm: 0, maxKm: 0, price: 0 }]);
@@ -47,7 +57,8 @@ export default function AdminSettings() {
       deliveryRanges: ranges.sort((a, b) => a.minKm - b.minKm),
       shopCoordinates: settings?.shopCoordinates || { lat: -23.5702, lng: -46.2941 },
       heroImageUrl: heroUrl,
-      logoUrl: logoUrl
+      logoUrl: logoUrl,
+      banners: banners
     });
     alert('Configurações salvas!');
   };
@@ -87,6 +98,34 @@ export default function AdminSettings() {
                 folder="branding" 
               />
               <p className="text-xs text-gray-500">Banner de destaque na página inicial.</p>
+            </div>
+          </div>
+
+          <div className="space-y-6 pt-8 border-t border-gray-100">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              Galeria de Banners (Opcional)
+            </h3>
+            <p className="text-sm text-gray-500">Adicione imagens extras para destacar promoções ou novidades.</p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {banners.map((url, index) => (
+                <div key={index} className="relative aspect-video rounded-2xl overflow-hidden group border border-gray-100 shadow-sm">
+                  <img src={url} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <button
+                    type="button"
+                    onClick={() => removeBanner(index)}
+                    className="absolute top-2 right-2 p-2 bg-white/90 backdrop-blur-sm rounded-full text-red-500 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+              <div className="aspect-video">
+                <ImageUpload 
+                  onUpload={addBanner} 
+                  folder="banners" 
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -235,6 +274,4 @@ export default function AdminSettings() {
   );
 }
 
-// Minimal versions for Reviews and Posts for now
-export function AdminReviews() { return ( <div className="p-8 text-center text-gray-500">Página de Avaliações em Construção</div> ); }
-export function AdminPosts() { return ( <div className="p-8 text-center text-gray-500">Página de Posts em Construção</div> ); }
+// Redundant exports removed as they are in their own files

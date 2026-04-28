@@ -23,7 +23,7 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <div className="w-10 h-10 bg-brand-orange rounded-full flex items-center justify-center text-white font-display text-xl overflow-hidden">
-            {logoUrl ? (
+            {logoUrl && logoUrl.trim() !== '' ? (
               <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             ) : (
               'S'

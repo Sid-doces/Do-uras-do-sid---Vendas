@@ -16,8 +16,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, currentImage
   const [progress, setProgress] = useState(0);
 
   const uploadFile = useCallback(async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor, selecione apenas imagens.');
+    if (file.size > 2 * 1024 * 1024) {
+      alert('A imagem é muito grande (máximo 2MB). Por favor, escolha uma imagem menor ou use um compressor online.');
+      return;
+    }
+
+    if (!file.type.match(/image\/(jpeg|png|webp|jpg)/)) {
+      alert('Formato inválido. Por favor, use JPG, PNG ou WEBP.');
       return;
     }
 
@@ -34,33 +39,38 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, currentImage
     try {
       let fileToUpload = file;
 
-      // Optimize image if it's for products or posts
-      if (folder === 'products' || folder === 'posts') {
-        const options = {
-          maxSizeMB: 0.8,
-          maxWidthOrHeight: 1200,
-          useWebWorker: true,
-          onProgress: (p: number) => setProgress(p),
-        };
+      // Optimize image
+      const options = {
+        maxSizeMB: 0.5, // Target 500KB
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+        initialQuality: 0.8,
+        onProgress: (p: number) => setProgress(p),
+      };
 
-        try {
-          const compressedFile = await imageCompression(file, options);
-          fileToUpload = new File([compressedFile], file.name, {
-            type: compressedFile.type,
-            lastModified: Date.now(),
-          });
-        } catch (error) {
-          console.warn("Compression failed, using original file", error);
-        }
+      try {
+        console.log('Starting compression...');
+        const compressedFile = await imageCompression(file, options);
+        fileToUpload = compressedFile instanceof File 
+          ? compressedFile 
+          : new File([compressedFile], file.name, { type: file.type });
+        console.log('Compression successful');
+      } catch (error) {
+        console.warn("Compression failed, using original file", error);
       }
 
-      const storageRef = ref(storage, `${folder}/${Date.now()}_${fileToUpload.name.replace(/\s+/g, '_')}`);
+      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+      const storageRef = ref(storage, `${folder}/${fileName}`);
+      
+      console.log('Uploading to Storage:', fileName);
       const snapshot = await uploadBytes(storageRef, fileToUpload);
       const url = await getDownloadURL(snapshot.ref);
+      
+      console.log('Upload successful! URL:', url);
       onUpload(url);
-    } catch (error) {
-      console.error("Upload failed", error);
-      alert("Falha no upload. Verifique as permissões do Firebase Storage.");
+    } catch (error: any) {
+      console.error("Upload error details:", error);
+      alert(`Falha no upload: ${error.message || 'Verifique sua conexão e permissões do Firebase Storage.'}`);
     } finally {
       setLoading(false);
       setProgress(0);
@@ -130,7 +140,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, currentImage
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {preview ? (
+        {preview && preview.trim() !== '' ? (
           <>
             <img src={preview} alt="Preview" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
@@ -156,8 +166,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, currentImage
             <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
               <Camera className="h-8 w-8 text-brand-orange" />
             </div>
-            <p className="text-sm font-bold text-gray-700">Arraste, cole ou clique</p>
-            <p className="text-xs text-gray-400 mt-1">Imagens PNG, JPG até 5MB</p>
+            <p className="text-sm font-bold text-gray-700">Arraste e solte ou clique</p>
+            <p className="text-xs text-gray-400 mt-1">Formatos: JPG, PNG, WEBP (Max 2MB)</p>
           </div>
         )}
         

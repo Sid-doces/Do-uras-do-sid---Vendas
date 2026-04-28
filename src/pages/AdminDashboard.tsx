@@ -84,7 +84,13 @@ export default function AdminDashboard() {
           <div className="space-y-4">
             {products.slice(0, 5).map((product) => (
               <div key={product.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
-                <img src={product.imageUrl} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
+                {product.imageUrl ? (
+                  <img src={product.imageUrl} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
+                ) : (
+                  <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400">
+                    <Package size={20} />
+                  </div>
+                )}
                 <div className="flex-grow">
                   <p className="font-bold text-gray-900">{product.name}</p>
                   <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">

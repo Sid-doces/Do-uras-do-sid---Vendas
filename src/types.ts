@@ -82,4 +82,5 @@ export interface Settings {
   deliveryRanges: DeliveryRange[];
   heroImageUrl?: string;
   logoUrl?: string;
+  banners?: string[];
 }
