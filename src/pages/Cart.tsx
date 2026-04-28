@@ -32,6 +32,7 @@ export default function Cart() {
   const [deliveryType, setDeliveryType] = useState<'city' | 'local'>('city');
   const [distance, setDistance] = useState<number | null>(null);
   const [calculating, setCalculating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -105,6 +106,8 @@ export default function Cart() {
       return;
     }
 
+    setIsSubmitting(true);
+
     const orderData: Omit<Order, 'id'> = {
       customerName: formData.name,
       customerPhone: formData.phone,
@@ -112,17 +115,19 @@ export default function Cart() {
       cityId: deliveryType === 'city' ? formData.cityId : 'local',
       deliveryType,
       deliveryFee,
-      distanceKm: distance || undefined,
+      distanceKm: distance || 0,
       items: items,
       total: finalTotal,
       deliveryDate: formData.deliveryDate,
       deliveryTime: formData.deliveryTime,
       status: 'pendente',
-      createdAt: null as any,
+      createdAt: null // Will be set by the hook
     };
 
     try {
+      console.log("Adding order:", orderData);
       await addOrder(orderData);
+      console.log("Order added successfully");
       
       // Try to update stock, but don't block the order if it fails
       try {
@@ -131,11 +136,12 @@ export default function Cart() {
           const productSnap = await getDocFromServer(productRef);
           if (productSnap.exists()) {
             const currentStock = productSnap.data().stock || 0;
+            // Only update if it won't crash (should be allowed by rules)
             await updateDoc(productRef, { stock: Math.max(0, currentStock - item.quantity) });
           }
         }
       } catch (stockError) {
-        console.error("Stock update failed", stockError);
+        console.warn("Stock update failed (expected if rules are strict)", stockError);
       }
       
       const itemsText = items.map(i => `• ${i.quantity}x ${i.name}`).join('\n');
@@ -145,20 +151,29 @@ export default function Cart() {
 
       const text = `🍰 *NOVO PEDIDO - Doçuras do Sid*\n\n*Cliente:* ${formData.name}\n*Fone:* ${formData.phone}\n\n*Itens:*\n${itemsText}\n\n*Total:* R$ ${finalTotal.toFixed(2)}\n\n*Entrega:*\n${deliveryInfo}\n*Endereço:* ${formData.address}\n*Data:* ${formData.deliveryDate}\n*Horário:* ${formData.deliveryTime}\n\n_Por favor, confirme meu pedido!_`;
       
-      let whatsappContact = settings?.whatsappNumber || settings?.whatsappUrl || '';
-      // If it contains only digits (or starts with digits), clean it. Otherwise use as is (slug)
-      if (/^\d+/.test(whatsappContact.replace(/\+/g, ''))) {
+      let whatsappContact = settings?.whatsappNumber || settings?.whatsappUrl || '5511999999999'; // Fallback
+      
+      // Cleanup for common number formats
+      if (/^\d+/.test(whatsappContact.replace(/\+/g, '').replace(/\s/g, ''))) {
         whatsappContact = whatsappContact.replace(/\D/g, '');
       }
       
       const url = `https://wa.me/${whatsappContact}?text=${encodeURIComponent(text)}`;
       
-      window.open(url, '_blank');
-      clearCart();
+      // Redirect to Step 3 first to ensure the user sees success
       setStep(3);
-    } catch (error) {
-      console.error("Order failed", error);
-      alert("Houve um erro ao processar seu pedido.");
+      clearCart();
+      
+      // Small timeout before opening WhatsApp to ensure state update
+      setTimeout(() => {
+        window.open(url, '_blank');
+      }, 500);
+      
+    } catch (error: any) {
+      console.error("Order failed details:", error);
+      alert(`Houve um erro ao processar seu pedido: ${error.message || 'Erro desconhecido'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -429,10 +444,15 @@ export default function Cart() {
                 </button>
                 <button
                   onClick={handleCheckout}
-                  className="flex-[2] py-5 bg-green-500 text-white rounded-2xl font-bold shadow-xl shadow-green-200 flex items-center justify-center gap-2 hover:scale-105 active:scale-95 transition-all"
+                  disabled={isSubmitting}
+                  className="flex-[2] py-5 bg-green-500 text-white rounded-2xl font-bold shadow-xl shadow-green-200 flex items-center justify-center gap-2 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
                 >
-                  <MessageSquare size={20} />
-                  Finalizar no WhatsApp
+                  {isSubmitting ? (
+                    <Loader2 className="animate-spin" size={20} />
+                  ) : (
+                    <MessageSquare size={20} />
+                  )}
+                  {isSubmitting ? 'Processando...' : 'Finalizar no WhatsApp'}
                 </button>
               </div>
             </div>
