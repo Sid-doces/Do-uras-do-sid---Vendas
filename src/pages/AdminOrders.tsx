@@ -40,7 +40,11 @@ export default function AdminOrders() {
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {orders.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds).map((order) => {
+        {orders.sort((a, b) => {
+          const timeA = a.createdAt?.seconds || 0;
+          const timeB = b.createdAt?.seconds || 0;
+          return timeB - timeA;
+        }).map((order) => {
           const StatusIcon = statusIcons[order.status].icon;
           return (
             <div key={order.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden group">

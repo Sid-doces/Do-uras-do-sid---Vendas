@@ -4,9 +4,10 @@ import { Review } from '../types';
 import { Star, MessageSquare, CheckCircle, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { where } from 'firebase/firestore';
 
 export default function Reviews() {
-  const { data: reviews, add } = useCollection<Review>('reviews');
+  const { data: reviews, add } = useCollection<Review>('reviews', [where('isApproved', '==', true)]);
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({

@@ -25,7 +25,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 export default function Cart() {
   const { items, total, updateQuantity, removeItem, clearCart } = useCart();
   const { data: cities } = useCollection<City>('cities');
-  const { add: addOrder } = useCollection<Order>('orders');
+  const { add: addOrder } = useCollection<Order>('orders', [], false);
   const { data: settings } = useDocument<Settings>('settings', 'general');
   const navigate = useNavigate();
 

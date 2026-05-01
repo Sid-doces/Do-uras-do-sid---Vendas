@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useCollection } from '../hooks/useFirestore';
 import { Post } from '../types';
 import { ImageUpload } from '../components/ImageUpload';
-import { Plus, Edit2, Trash2, Calendar, Star, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar, Star, Search, Sparkles, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { GoogleGenAI } from "@google/genai";
 
 export default function AdminPosts() {
   const { data: posts, add, update, remove, loading } = useCollection<Post>('posts');
@@ -12,6 +13,7 @@ export default function AdminPosts() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const [formData, setFormData] = useState<Partial<Post>>({
     title: '',
@@ -19,6 +21,39 @@ export default function AdminPosts() {
     imageUrl: '',
     isFeatured: false,
   });
+
+  const generateAIPost = async () => {
+    setIsGenerating(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const prompt = `Gere um post de blog profissional e apaixonante para a confeitaria "Doçuras do Sid".
+      Contexto: Localizada em Suzano, SP (Rua Flor de Narciso, 532, Jardim Ikeda). Especialistas em tortas artesanais, kits de presente e embalagens especiais.
+      O texto deve ser em português do Brasil, convidativo e focado na qualidade artesanal.
+      Retorne apenas um JSON com os campos: "title" (string) e "content" (string - use markdown para parágrafos).
+      Sugestão de tema: Escolha entre "O segredo das nossas tortas", "A importância de presentear com doçura" ou "Novidades na Doçuras do Sid".`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const data = JSON.parse(response.text);
+      setFormData({
+        ...formData,
+        title: data.title,
+        content: data.content,
+      });
+      if (!isModalOpen) setIsModalOpen(true);
+    } catch (error) {
+      console.error("Erro ao gerar post com IA:", error);
+      alert("Falha ao conectar com a IA. Verifique sua conexão.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,13 +97,23 @@ export default function AdminPosts() {
           <h1 className="text-3xl font-bold text-gray-900">Novidades / Blog</h1>
           <p className="text-gray-500">Crie conteúdo para engajar seus clientes.</p>
         </div>
-        <button
-          onClick={() => openModal()}
-          className="btn-primary flex items-center justify-center gap-2"
-        >
-          <Plus size={20} />
-          Novo Post
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={generateAIPost}
+            disabled={isGenerating}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-brand-brown text-white rounded-2xl font-bold shadow-lg hover:bg-brand-brown/90 transition-all disabled:opacity-50"
+          >
+            {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} className="text-brand-orange" />}
+            Gerar com IA
+          </button>
+          <button
+            onClick={() => openModal()}
+            className="btn-primary flex items-center justify-center gap-2"
+          >
+            <Plus size={20} />
+            Novo Post
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
@@ -135,7 +180,21 @@ export default function AdminPosts() {
           <div className="relative bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
               <h2 className="text-xl font-bold">{editingPost ? 'Editar Post' : 'Novo Post'}</h2>
-              <button onClick={closeModal} className="p-2 hover:bg-gray-200 rounded-full"><Plus className="rotate-45" /></button>
+              <div className="flex items-center gap-2">
+                {!editingPost && (
+                  <button
+                    type="button"
+                    onClick={generateAIPost}
+                    disabled={isGenerating}
+                    className="p-2 text-brand-brown hover:bg-white rounded-lg transition-colors flex items-center gap-1 text-xs font-bold"
+                    title="Gerar conteúdo com IA"
+                  >
+                    {isGenerating ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} className="text-brand-orange" />}
+                    IA
+                  </button>
+                )}
+                <button onClick={closeModal} className="p-2 hover:bg-gray-200 rounded-full"><Plus className="rotate-45" /></button>
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">

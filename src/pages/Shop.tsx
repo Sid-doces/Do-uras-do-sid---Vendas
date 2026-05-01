@@ -14,11 +14,13 @@ export default function Shop() {
 
   const categories = ['Todos', 'Tortas', 'Kits', 'Embalagens'];
 
-  const filteredProducts = products.filter(p => {
-    const matchesCategory = activeCategory === 'Todos' || p.category === activeCategory;
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return p.isActive && matchesCategory && matchesSearch;
-  });
+  const filteredProducts = products
+    .filter(p => {
+      const matchesCategory = activeCategory === 'Todos' || p.category === activeCategory;
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+      return p.isActive && matchesCategory && matchesSearch;
+    })
+    .sort((a, b) => a.price - b.price);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12 space-y-12 min-h-screen">
@@ -55,7 +57,7 @@ export default function Shop() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-8">
         <AnimatePresence mode="popLayout">
           {filteredProducts.map((product) => (
             <motion.div
@@ -64,7 +66,7 @@ export default function Shop() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="card flex flex-col h-full"
+              className="card flex flex-col h-full overflow-hidden"
             >
               <div className="aspect-square relative overflow-hidden bg-gray-100">
                 {product.imageUrl ? (
@@ -80,33 +82,33 @@ export default function Shop() {
                   </div>
                 )}
                 {product.isBestSeller && (
-                  <div className="absolute top-4 left-4 bg-brand-orange text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
-                    <Star size={10} fill="currentColor" /> MAIS PEDIDO
+                  <div className="absolute top-2 left-2 bg-brand-orange text-white text-[8px] md:text-[10px] font-bold px-2 md:px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
+                    <Star size={8} fill="currentColor" /> MAIS PEDIDO
                   </div>
                 )}
-                {product.stock <= 5 && (
-                   <div className="absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">
-                    SÓ RESTAM {product.stock}
+                {product.stock <= 5 && product.stock > 0 && (
+                   <div className="absolute top-2 right-2 bg-red-500 text-white text-[8px] md:text-[10px] font-bold px-2 md:px-3 py-1 rounded-full shadow-lg">
+                    SÓ {product.stock}
                   </div>
                 )}
               </div>
               
-              <div className="p-6 flex flex-col flex-grow">
-                <div className="flex-grow space-y-2">
+              <div className="p-3 md:p-6 flex flex-col flex-grow">
+                <div className="flex-grow space-y-1 md:space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-brand-orange uppercase tracking-widest">{product.category}</span>
-                    <div className="flex text-orange-400">
-                      {[...Array(5)].map((_, i) => <Star key={i} size={12} fill="currentColor" />)}
+                    <span className="text-[8px] md:text-[10px] font-bold text-brand-orange uppercase tracking-widest">{product.category}</span>
+                    <div className="hidden sm:flex text-orange-400">
+                      {[...Array(5)].map((_, i) => <Star key={i} size={10} fill="currentColor" />)}
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">{product.name}</h3>
-                  <p className="text-sm text-gray-500 line-clamp-2">{product.description}</p>
+                  <h3 className="text-sm md:text-xl font-bold text-gray-900 leading-tight">{product.name}</h3>
+                  <p className="hidden md:block text-sm text-gray-500 line-clamp-2">{product.description}</p>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between">
+                <div className="mt-3 md:mt-6 flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase leading-none">Preço</p>
-                    <p className="text-2xl font-display font-bold text-brand-brown">R$ {product.price.toFixed(2)}</p>
+                    <p className="text-[8px] md:text-[10px] text-gray-400 font-bold uppercase leading-none">Preço</p>
+                    <p className="text-lg md:text-2xl font-display font-bold text-brand-brown">R$ {product.price.toFixed(2)}</p>
                   </div>
                   <button
                     disabled={product.stock <= 0}
@@ -116,13 +118,13 @@ export default function Shop() {
                       price: product.price,
                       quantity: 1
                     })}
-                    className={`p-4 text-white rounded-2xl shadow-lg transition-all ${
+                    className={`p-2 md:p-4 text-white rounded-xl md:rounded-2xl shadow-lg transition-all ${
                       product.stock > 0 
                         ? 'bg-brand-orange hover:shadow-xl hover:scale-110 active:scale-95' 
                         : 'bg-gray-300 cursor-not-allowed'
                     }`}
                   >
-                    <ShoppingCart size={20} />
+                    <ShoppingCart size={16} className="md:w-5 md:h-5" />
                   </button>
                 </div>
               </div>

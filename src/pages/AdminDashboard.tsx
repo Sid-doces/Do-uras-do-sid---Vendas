@@ -11,7 +11,8 @@ export default function AdminDashboard() {
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const todayOrders = orders.filter(o => {
-    const orderDate = o.createdAt?.toDate ? format(o.createdAt.toDate(), 'yyyy-MM-dd') : null;
+    if (!o.createdAt) return false;
+    const orderDate = o.createdAt.toDate ? format(o.createdAt.toDate(), 'yyyy-MM-dd') : null;
     return orderDate === today;
   });
 
@@ -60,7 +61,10 @@ export default function AdminDashboard() {
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
           <h3 className="text-lg font-bold mb-6">Últimos Pedidos</h3>
           <div className="space-y-4">
-            {orders.slice(0, 5).map((order) => (
+            {orders
+              .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+              .slice(0, 5)
+              .map((order) => (
               <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
                 <div>
                   <p className="font-bold text-gray-900">{order.customerName}</p>
