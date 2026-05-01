@@ -9,6 +9,7 @@ export default function AdminProducts() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
@@ -190,14 +191,25 @@ export default function AdminProducts() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Imagem do Produto</label>
-                <ImageUpload 
-                  folder="products" 
-                  currentImage={formData.imageUrl} 
-                  onUpload={(url) => setFormData(prev => ({ ...prev, imageUrl: url }))} 
-                />
-              </div>
+    <div>
+      <label className="block text-sm font-bold text-gray-700 mb-2">Imagem do Produto</label>
+      <ImageUpload 
+        folder="products" 
+        currentImage={formData.imageUrl} 
+        onUploading={setIsUploading}
+        onUpload={(url) => setFormData(prev => ({ ...prev, imageUrl: url }))} 
+      />
+      <div className="mt-2">
+        <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Ou Link da Imagem</label>
+        <input
+          type="text"
+          placeholder="https://colar-link-da-imagem.jpg"
+          className="w-full px-4 py-2 bg-gray-50 border-gray-100 rounded-xl text-xs focus:ring-2 focus:ring-brand-orange"
+          value={formData.imageUrl || ''}
+          onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
+        />
+      </div>
+    </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
@@ -276,9 +288,10 @@ export default function AdminProducts() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-grow py-4 bg-brand-orange text-white rounded-2xl font-bold transition-all hover:bg-brand-orange/90 shadow-lg"
+                  disabled={isUploading}
+                  className="flex-grow py-4 bg-brand-orange text-white rounded-2xl font-bold transition-all hover:bg-brand-orange/90 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingProduct ? 'Salvar Alterações' : 'Criar Produto'}
+                  {isUploading ? 'Aguarde o Upload...' : (editingProduct ? 'Salvar Alterações' : 'Criar Produto')}
                 </button>
               </div>
             </form>

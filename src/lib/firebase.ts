@@ -7,6 +7,11 @@ import firebaseConfig from '../../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+
+// Initialize storage only if bucket is present
+if (!firebaseConfig.storageBucket) {
+  console.warn("Firebase Storage Bucket is missing in config. Image uploads will fail. Please check your Firebase console.");
+}
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 

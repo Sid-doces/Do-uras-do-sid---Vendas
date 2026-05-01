@@ -10,6 +10,7 @@ export default function AdminSettings() {
   const [heroUrl, setHeroUrl] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [banners, setBanners] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (settings?.deliveryRanges) {
@@ -84,9 +85,17 @@ export default function AdminSettings() {
                 <ImageUpload 
                   currentImage={logoUrl} 
                   onUpload={setLogoUrl} 
+                  onUploading={setIsUploading}
                   folder="branding" 
                 />
               </div>
+              <input
+                type="text"
+                placeholder="URL da Logo"
+                className="w-full px-4 py-2 bg-gray-50 border-gray-100 rounded-xl text-xs"
+                value={logoUrl}
+                onChange={(e) => setLogoUrl(e.target.value)}
+              />
               <p className="text-xs text-gray-500">Aparece no cabeçalho e rodapé.</p>
             </div>
 
@@ -95,7 +104,15 @@ export default function AdminSettings() {
               <ImageUpload 
                 currentImage={heroUrl} 
                 onUpload={setHeroUrl} 
+                onUploading={setIsUploading}
                 folder="branding" 
+              />
+              <input
+                type="text"
+                placeholder="URL do Banner"
+                className="w-full px-4 py-2 bg-gray-50 border-gray-100 rounded-xl text-xs"
+                value={heroUrl}
+                onChange={(e) => setHeroUrl(e.target.value)}
               />
               <p className="text-xs text-gray-500">Banner de destaque na página inicial.</p>
             </div>
@@ -123,6 +140,7 @@ export default function AdminSettings() {
               <div className="aspect-video">
                 <ImageUpload 
                   onUpload={addBanner} 
+                  onUploading={setIsUploading}
                   folder="banners" 
                 />
               </div>
@@ -145,7 +163,7 @@ export default function AdminSettings() {
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">WhatsApp do Sid (Somente números)</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">WhatsApp Principal (Número com DDD)</label>
               <input
                 name="whatsappNumber"
                 type="text"
@@ -153,9 +171,10 @@ export default function AdminSettings() {
                 placeholder="Ex: 5511999999999"
                 className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-brand-orange"
               />
+              <p className="text-[10px] text-gray-400 mt-1">Este número será usado para receber os pedidos.</p>
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Link Curto do WhatsApp (Opcional)</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Link Curto/Slug (Opcional)</label>
               <input
                 name="whatsappUrl"
                 type="text"
@@ -163,6 +182,7 @@ export default function AdminSettings() {
                 placeholder="Ex: docurasdosid"
                 className="w-full px-4 py-3 bg-gray-50 border-gray-100 rounded-xl focus:ring-2 focus:ring-brand-orange"
               />
+              <p className="text-[10px] text-gray-400 mt-1">Se você usa um link wa.me/seunome, coloque apenas o nome aqui.</p>
             </div>
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Instagram URL</label>
@@ -274,10 +294,11 @@ export default function AdminSettings() {
 
         <button
           type="submit"
-          className="w-full py-5 bg-brand-brown text-white rounded-3xl font-bold shadow-xl shadow-brown-100 hover:shadow-2xl transition-all flex items-center justify-center gap-2 group"
+          disabled={isUploading}
+          className="w-full py-5 bg-brand-brown text-white rounded-3xl font-bold shadow-xl shadow-brown-100 hover:shadow-2xl transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
         >
           <div className="w-2 h-2 bg-brand-orange rounded-full group-hover:scale-150 transition-transform" />
-          Salvar Todas as Configurações
+          {isUploading ? 'Aguarde o Upload...' : 'Salvar Todas as Configurações'}
         </button>
       </form>
     </div>

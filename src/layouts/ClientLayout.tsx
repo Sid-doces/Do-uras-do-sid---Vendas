@@ -4,6 +4,7 @@ import { ShoppingCart, Home, Store, MessageSquare, Newspaper, Instagram } from '
 import { CartProvider, useCart } from '../components/CartProvider';
 import { useDocument } from '../hooks/useFirestore';
 import { motion, AnimatePresence } from 'motion/react';
+import { formatWhatsAppUrl } from '../lib/utils';
 
 const Header = () => {
   const { itemCount } = useCart();
@@ -92,11 +93,11 @@ const MobileNav = () => {
 
 const WhatsAppButton = () => {
   const { data: settings } = useDocument<any>('settings', 'general');
-  const whatsappNumber = settings?.whatsappNumber || settings?.whatsappUrl || '5500000000000';
+  const whatsappContact = settings?.whatsappNumber || settings?.whatsappUrl;
   
   return (
     <a
-      href={`https://wa.me/${whatsappNumber}`}
+      href={formatWhatsAppUrl(whatsappContact)}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-20 md:bottom-8 right-4 md:right-8 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-40 flex items-center justify-center"

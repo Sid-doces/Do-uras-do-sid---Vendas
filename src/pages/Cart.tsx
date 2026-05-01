@@ -4,10 +4,11 @@ import { useCollection, useDocument } from '../hooks/useFirestore';
 import { doc, getDocFromServer, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { City, Settings, Order, DeliveryRange } from '../types';
-import { ShoppingBag, Trash2, Plus, Minus, MapPin, Calendar, Clock, ArrowRight, MessageSquare, CheckCircle, Navigation, Loader2 } from 'lucide-react';
+import { ShoppingBag, Trash2, Plus, Minus, MapPin, Calendar, Clock, ArrowRight, MessageSquare, CheckCircle, Navigation, Loader2, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, addDays, isSameDay, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatWhatsAppUrl } from '../lib/utils';
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // km
@@ -151,14 +152,8 @@ export default function Cart() {
 
       const text = `🍰 *NOVO PEDIDO - Doçuras do Sid*\n\n*Cliente:* ${formData.name}\n*Fone:* ${formData.phone}\n\n*Itens:*\n${itemsText}\n\n*Total:* R$ ${finalTotal.toFixed(2)}\n\n*Entrega:*\n${deliveryInfo}\n*Endereço:* ${formData.address}\n*Data:* ${formData.deliveryDate}\n*Horário:* ${formData.deliveryTime}\n\n_Por favor, confirme meu pedido!_`;
       
-      let whatsappContact = settings?.whatsappNumber || settings?.whatsappUrl || '5511999999999'; // Fallback
-      
-      // Cleanup for common number formats
-      if (/^\d+/.test(whatsappContact.replace(/\+/g, '').replace(/\s/g, ''))) {
-        whatsappContact = whatsappContact.replace(/\D/g, '');
-      }
-      
-      const url = `https://wa.me/${whatsappContact}?text=${encodeURIComponent(text)}`;
+      const whatsappContact = settings?.whatsappNumber || settings?.whatsappUrl || '5511999999999';
+      const url = formatWhatsAppUrl(whatsappContact, text);
       
       // Redirect to Step 3 first to ensure the user sees success
       setStep(3);
@@ -166,8 +161,11 @@ export default function Cart() {
       
       // Small timeout before opening WhatsApp to ensure state update
       setTimeout(() => {
-        window.open(url, '_blank');
-      }, 500);
+        const win = window.open(url, '_blank');
+        if (!win || win.closed || typeof win.closed === 'undefined') {
+          console.warn("Popup blocked or failed to open");
+        }
+      }, 800);
       
     } catch (error: any) {
       console.error("Order failed details:", error);
@@ -460,19 +458,41 @@ export default function Cart() {
         )}
 
         {step === 3 && (
-          <div className="text-center py-20 translate-y-0 animate-in fade-in zoom-in duration-500">
+          <div className="text-center py-10 translate-y-0 animate-in fade-in zoom-in duration-500">
             <div className="w-32 h-32 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-500 mb-8 border-4 border-green-50">
               <CheckCircle size={64} />
             </div>
-            <h2 className="text-4xl font-bold mb-4 font-display">Pedido Enviado!</h2>
-            <p className="text-gray-500 max-w-md mx-auto text-lg mb-12">
-              Seu pedido foi registrado. Agora estamos te redirecionando para o WhatsApp para confirmar os detalhes com o Sid.
+            <h2 className="text-4xl font-bold mb-4 font-display">Pedido Registrado!</h2>
+            <p className="text-gray-500 max-w-md mx-auto text-lg mb-8">
+              Parabéns! Seu pedido foi salvo. Agora falta só um passo: enviar para nosso WhatsApp para confirmação.
             </p>
+            
+            <div className="bg-white p-8 rounded-[40px] shadow-xl border border-green-100 mb-12 max-w-md mx-auto space-y-6">
+              <p className="text-sm font-bold text-gray-400 uppercase tracking-widest leading-tight">Instruções</p>
+              <p className="text-gray-600">Se o WhatsApp não abriu automaticamente, clique no botão abaixo para nos enviar os detalhes do seu pedido.</p>
+              
+              <button 
+                onClick={() => {
+                  const itemsText = items.map(i => `• ${i.quantity}x ${i.name}`).join('\n');
+                  const deliveryInfo = deliveryType === 'local' 
+                    ? `*Entrega Local (Suzano)*\nDistância: ${distance?.toFixed(1)}km\nTaxa: R$ ${deliveryFee.toFixed(2)}`
+                    : `*Entrega via Rota*\nCidade: ${selectedCity?.name}`;
+                  const text = `🍰 *NOVO PEDIDO - Doçuras do Sid*\n\n*Cliente:* ${formData.name}\n*Fone:* ${formData.phone}\n\n*Itens:*\n${itemsText}\n\n*Total:* R$ ${finalTotal.toFixed(2)}\n\n*Entrega:*\n${deliveryInfo}\n*Endereço:* ${formData.address}\n*Data:* ${formData.deliveryDate}\n*Horário:* ${formData.deliveryTime}\n\n_Por favor, confirme meu pedido!_`;
+                  const whatsappContact = settings?.whatsappNumber || settings?.whatsappUrl || '5511999999999';
+                  window.open(formatWhatsAppUrl(whatsappContact, text), '_blank');
+                }}
+                className="w-full py-5 bg-green-500 text-white rounded-2xl font-bold shadow-xl shadow-green-100 flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
+              >
+                <MessageSquare size={24} />
+                Enviar para WhatsApp
+                <ExternalLink size={18} />
+              </button>
+            </div>
+
             <div className="space-y-4">
-              <button onClick={() => navigate('/')} className="btn-primary px-12">
+              <button onClick={() => navigate('/')} className="text-brand-orange font-bold hover:underline">
                 Voltar para o Início
               </button>
-              <p className="text-sm text-gray-400">Não foi redirecionado? <span className="text-brand-orange font-bold cursor-pointer underline">Clique aqui</span></p>
             </div>
           </div>
         )}

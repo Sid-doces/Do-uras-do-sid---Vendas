@@ -6,6 +6,7 @@ import { useCollection, useDocument } from '../hooks/useFirestore';
 import { Product, City, Settings, Post } from '../types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatWhatsAppUrl } from '../lib/utils';
 
 export default function Home() {
   const { data: products } = useCollection<Product>('products');
@@ -257,7 +258,7 @@ export default function Home() {
                 </div>
               </a>
               <a 
-                href={`https://wa.me/${settings?.whatsappUrl || ''}`} 
+                href={formatWhatsAppUrl(settings?.whatsappNumber || settings?.whatsappUrl)} 
                 target="_blank" 
                 className="flex items-center gap-3 px-8 py-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/10"
                 rel="noreferrer"

@@ -11,6 +11,7 @@ export default function AdminPosts() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   const [formData, setFormData] = useState<Partial<Post>>({
     title: '',
@@ -143,8 +144,19 @@ export default function AdminPosts() {
                 <ImageUpload 
                   folder="posts"
                   currentImage={formData.imageUrl}
+                  onUploading={setIsUploading}
                   onUpload={(url) => setFormData(prev => ({ ...prev, imageUrl: url }))}
                 />
+                <div className="mt-2 text-xs">
+                  <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Ou Link Direto</label>
+                  <input
+                    type="text"
+                    placeholder="https://colar-imagem.jpg"
+                    className="w-full px-3 py-2 bg-gray-50 border-gray-100 rounded-xl focus:ring-1 focus:ring-brand-orange"
+                    value={formData.imageUrl || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
+                  />
+                </div>
               </div>
 
               <div>
@@ -183,7 +195,13 @@ export default function AdminPosts() {
 
               <div className="pt-6 border-t border-gray-100 flex gap-4">
                 <button type="button" onClick={closeModal} className="flex-grow py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold">Cancelar</button>
-                <button type="submit" className="flex-[2] py-4 bg-brand-orange text-white rounded-2xl font-bold shadow-lg">Salvar Post</button>
+                <button 
+                  type="submit" 
+                  disabled={isUploading}
+                  className="flex-[2] py-4 bg-brand-orange text-white rounded-2xl font-bold shadow-lg disabled:opacity-50"
+                >
+                  {isUploading ? 'Enviando...' : 'Salvar Post'}
+                </button>
               </div>
             </form>
           </div>

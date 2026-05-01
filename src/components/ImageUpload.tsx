@@ -5,15 +5,21 @@ import imageCompression from 'browser-image-compression';
 
 interface ImageUploadProps {
   onUpload: (url: string) => void;
+  onUploading?: (isUploading: boolean) => void;
   currentImage?: string;
   folder: string;
 }
 
-export const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, currentImage, folder }) => {
+export const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, onUploading, currentImage, folder }) => {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(currentImage);
   const [isDragging, setIsDragging] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  const setStatus = useCallback((status: boolean) => {
+    setLoading(status);
+    if (onUploading) onUploading(status);
+  }, [onUploading]);
 
   const uploadFile = useCallback(async (file: File) => {
     if (file.size > 2 * 1024 * 1024) {
@@ -33,7 +39,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, currentImage
     };
     reader.readAsDataURL(file);
 
-    setLoading(true);
+    setStatus(true);
     setProgress(0);
 
     try {
@@ -70,12 +76,12 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, currentImage
       onUpload(url);
     } catch (error: any) {
       console.error("Upload error details:", error);
-      alert(`Falha no upload: ${error.message || 'Verifique sua conexão e permissões do Firebase Storage.'}`);
+      alert(`Falha no upload: ${error.message || 'Verifique sua conexão e se o Firebase Storage está ativado.'}`);
     } finally {
-      setLoading(false);
+      setStatus(false);
       setProgress(0);
     }
-  }, [folder, onUpload]);
+  }, [folder, onUpload, setStatus]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -122,11 +128,17 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, currentImage
 
   const handleManualUrlSubmit = () => {
     if (manualUrl) {
-      onUpload(manualUrl);
-      setPreview(manualUrl);
+      const trimmed = manualUrl.trim();
+      onUpload(trimmed);
+      setPreview(trimmed);
       setShowUrlInput(false);
+      setManualUrl('');
     }
   };
+
+  useEffect(() => {
+    setPreview(currentImage);
+  }, [currentImage]);
 
   return (
     <div className="space-y-4">
