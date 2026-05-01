@@ -5,6 +5,7 @@ import {
   Star, FileText, Settings as SettingsIcon, LogOut, Menu, X 
 } from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
+import { ToastProvider } from '../components/ToastProvider';
 
 export default function AdminLayout() {
   const { logout, user } = useAuth();
@@ -78,40 +79,42 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar Desktop */}
-      <aside className="hidden lg:block w-64 border-r border-gray-200 sticky top-0 h-screen">
-        <NavContent />
-      </aside>
+    <ToastProvider>
+      <div className="min-h-screen bg-gray-50 flex">
+        {/* Sidebar Desktop */}
+        <aside className="hidden lg:block w-64 border-r border-gray-200 sticky top-0 h-screen">
+          <NavContent />
+        </aside>
 
-      {/* Main Content */}
-      <div className="flex-grow flex flex-col">
-        {/* Topbar Mobile */}
-        <header className="lg:hidden h-16 bg-brand-brown text-white flex items-center justify-between px-4 sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-brand-orange rounded-lg flex items-center justify-center font-display text-white">S</div>
-            <span className="font-display font-bold text-lg">Sid Admin</span>
-          </div>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-            {isMobileMenuOpen ? <X /> : <Menu />}
-          </button>
-        </header>
+        {/* Main Content */}
+        <div className="flex-grow flex flex-col">
+          {/* Topbar Mobile */}
+          <header className="lg:hidden h-16 bg-brand-brown text-white flex items-center justify-between px-4 sticky top-0 z-20">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-brand-orange rounded-lg flex items-center justify-center font-display text-white">S</div>
+              <span className="font-display font-bold text-lg">Sid Admin</span>
+            </div>
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+              {isMobileMenuOpen ? <X /> : <Menu />}
+            </button>
+          </header>
 
-        {/* Mobile Navigation Drawer */}
-        <div className={`
-          lg:hidden fixed inset-0 z-50 transform transition-transform duration-300 ease-in-out
-          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}>
-          <div className="w-64 h-full shadow-2xl">
-            <NavContent />
+          {/* Mobile Navigation Drawer */}
+          <div className={`
+            lg:hidden fixed inset-0 z-50 transform transition-transform duration-300 ease-in-out
+            ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}>
+            <div className="w-64 h-full shadow-2xl">
+              <NavContent />
+            </div>
+            <div className="absolute inset-0 bg-black/50 -z-10" onClick={() => setIsMobileMenuOpen(false)} />
           </div>
-          <div className="absolute inset-0 bg-black/50 -z-10" onClick={() => setIsMobileMenuOpen(false)} />
+
+          <main className="p-4 lg:p-8 max-w-6xl mx-auto w-full">
+            <Outlet />
+          </main>
         </div>
-
-        <main className="p-4 lg:p-8 max-w-6xl mx-auto w-full">
-          <Outlet />
-        </main>
       </div>
-    </div>
+    </ToastProvider>
   );
 }

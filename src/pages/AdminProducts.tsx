@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useCollection } from '../hooks/useFirestore';
+import { useToast } from '../components/ToastProvider';
 import { Product } from '../types';
 import { ImageUpload } from '../components/ImageUpload';
 import { Plus, Edit2, Trash2, Search, Filter, Star, Eye, EyeOff } from 'lucide-react';
 
 export default function AdminProducts() {
   const { data: products, add, update, remove, loading } = useCollection<Product>('products');
+  const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,12 +26,18 @@ export default function AdminProducts() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingProduct) {
-      await update(editingProduct.id, formData);
-    } else {
-      await add(formData as any);
+    try {
+      if (editingProduct) {
+        await update(editingProduct.id, formData);
+        showToast('Produto atualizado com sucesso!', 'success');
+      } else {
+        await add(formData as any);
+        showToast('Produto criado com sucesso!', 'success');
+      }
+      closeModal();
+    } catch (error) {
+      showToast('Erro ao salvar produto.', 'error');
     }
-    closeModal();
   };
 
   const openModal = (product?: Product) => {

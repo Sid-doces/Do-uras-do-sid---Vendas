@@ -1,12 +1,13 @@
 import React from 'react';
-import { ShoppingBag, DollarSign, Clock, Package } from 'lucide-react';
+import { ShoppingBag, DollarSign, Clock, Package, MapPin } from 'lucide-react';
 import { useCollection, useDocument } from '../hooks/useFirestore';
-import { Order, Product, Settings } from '../types';
+import { Order, Product, Settings, City } from '../types';
 import { format } from 'date-fns';
 
 export default function AdminDashboard() {
   const { data: orders } = useCollection<Order>('orders');
   const { data: products } = useCollection<Product>('products');
+  const { data: cities } = useCollection<City>('cities');
   const { data: settings } = useDocument<Settings>('settings', 'general');
 
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -17,7 +18,7 @@ export default function AdminDashboard() {
   });
 
   const dailyRevenue = todayOrders.reduce((acc, o) => acc + o.total, 0);
-  const pendingOrders = orders.filter(o => o.status === 'pendente').length;
+  const totalRevenue = orders.filter(o => o.status !== 'cancelado').reduce((acc, o) => acc + o.total, 0);
   const totalStock = products.reduce((acc, p) => acc + p.stock, 0);
   
   const dailyProductionUsed = todayOrders.length;
@@ -26,9 +27,19 @@ export default function AdminDashboard() {
   const stats = [
     { name: 'Pedidos Hoje', value: todayOrders.length, icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50' },
     { name: 'Faturamento Hoje', value: `R$ ${dailyRevenue.toFixed(2)}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-    { name: 'Pendentes', value: pendingOrders, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { name: 'Faturamento Total', value: `R$ ${totalRevenue.toFixed(2)}`, icon: DollarSign, color: 'text-brand-brown', bg: 'bg-stone-50' },
     { name: 'Total em Estoque', value: totalStock, icon: Package, color: 'text-purple-600', bg: 'bg-purple-50' },
   ];
+
+  const cityRanking = Object.entries(
+    orders.reduce((acc: Record<string, number>, order) => {
+      const cityName = order.cityId === 'local' 
+        ? 'Suzano (Local)' 
+        : (cities.find(c => c.id === order.cityId)?.name || 'Outras');
+      acc[cityName] = (acc[cityName] || 0) + 1;
+      return acc;
+    }, {})
+  ).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   return (
     <div className="space-y-8">
@@ -58,6 +69,29 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+          <h3 className="text-lg font-bold mb-6">Cidades Populares</h3>
+          <div className="space-y-4">
+            {cityRanking.map(([name, count]) => (
+              <div key={name} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-brand-orange/10 text-brand-orange rounded-xl flex items-center justify-center">
+                    <MapPin size={20} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900">{name}</p>
+                    <p className="text-xs text-gray-500">{count} pedidos realizados</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-display font-bold text-brand-brown">{count}</p>
+                </div>
+              </div>
+            ))}
+            {cityRanking.length === 0 && <p className="text-center text-gray-400 py-8">Nenhum dado geográfico.</p>}
+          </div>
+        </div>
+
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
           <h3 className="text-lg font-bold mb-6">Últimos Pedidos</h3>
           <div className="space-y-4">

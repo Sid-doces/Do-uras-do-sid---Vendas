@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../components/CartProvider';
+import { useToast } from '../components/ToastProvider';
 import { useCollection, useDocument } from '../hooks/useFirestore';
-import { doc, getDocFromServer, updateDoc } from 'firebase/firestore';
+import { doc, getDocFromServer, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { City, Settings, Order, DeliveryRange } from '../types';
 import { ShoppingBag, Trash2, Plus, Minus, MapPin, Calendar, Clock, ArrowRight, MessageSquare, CheckCircle, Navigation, Loader2, ExternalLink } from 'lucide-react';
@@ -24,6 +25,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export default function Cart() {
   const { items, total, updateQuantity, removeItem, clearCart } = useCart();
+  const { showToast } = useToast();
   const { data: cities } = useCollection<City>('cities');
   const { add: addOrder } = useCollection<Order>('orders', [], false);
   const { data: settings } = useDocument<Settings>('settings', 'general');
@@ -83,7 +85,7 @@ export default function Cart() {
         setDistance(d);
         setCalculating(false);
         if (d > 10.5) {
-          alert('Ops! Você está fora do nosso raio de 10km para entrega local. Entre em contato para verificar entrega em sua cidade.');
+          showToast('Você está fora do nosso raio de 10km para entrega local.', 'error');
           setDeliveryType('city');
           setDistance(null);
         }
@@ -91,19 +93,19 @@ export default function Cart() {
       (error) => {
         setCalculating(false);
         console.error(error);
-        alert('Não conseguimos obter sua localização. Por favor, permita o acesso ou selecione uma cidade da lista.');
+        showToast('Não conseguimos obter sua localização.', 'error');
       }
     );
   };
 
   const handleCheckout = async () => {
     if (!formData.name || !formData.phone || !formData.address || (deliveryType === 'city' && !formData.cityId) || !formData.deliveryDate || !formData.deliveryTime) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
+      showToast('Por favor, preencha todos os campos.', 'info');
       return;
     }
 
     if (deliveryType === 'local' && (distance === null || distance > 10.5)) {
-      alert('Por favor, calcule sua distância para prosseguir com a entrega local (máx 10km).');
+      showToast('Por favor, calcule sua localização para entrega local.', 'info');
       return;
     }
 
@@ -134,12 +136,10 @@ export default function Cart() {
       try {
         for (const item of items) {
           const productRef = doc(db, 'products', item.productId);
-          const productSnap = await getDocFromServer(productRef);
-          if (productSnap.exists()) {
-            const currentStock = productSnap.data().stock || 0;
-            // Only update if it won't crash (should be allowed by rules)
-            await updateDoc(productRef, { stock: Math.max(0, currentStock - item.quantity) });
-          }
+          // Atomic update using increment to handle concurrency
+          await updateDoc(productRef, { 
+            stock: increment(-item.quantity) 
+          });
         }
       } catch (stockError) {
         console.warn("Stock update failed (expected if rules are strict)", stockError);
@@ -169,7 +169,7 @@ export default function Cart() {
       
     } catch (error: any) {
       console.error("Order failed details:", error);
-      alert(`Houve um erro ao processar seu pedido: ${error.message || 'Erro desconhecido'}`);
+      showToast('Erro ao processar pedido. Tente novamente.', 'error');
     } finally {
       setIsSubmitting(false);
     }

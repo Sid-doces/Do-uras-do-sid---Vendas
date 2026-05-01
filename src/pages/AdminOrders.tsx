@@ -1,18 +1,51 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useCollection } from '../hooks/useFirestore';
 import { Order, City } from '../types';
-import { ShoppingBag, Phone, MapPin, Calendar, Clock, MessageSquare, CheckCircle, Truck, XCircle } from 'lucide-react';
+import { ShoppingBag, Phone, MapPin, Calendar, Clock, MessageSquare, CheckCircle, Truck, XCircle, Filter, Search, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function AdminOrders() {
   const { data: orders, update, loading } = useCollection<Order>('orders');
   const { data: cities } = useCollection<City>('cities');
+  const [selectedCity, setSelectedCity] = useState<string>('all');
+  const [selectedDate, setSelectedDate] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const getCityName = (id: string) => {
-    if (id === 'local') return 'Entrega Local (Suzano)';
+    if (id === 'local') return 'Suzano (Local)';
     return cities.find(c => c.id === id)?.name || 'Desconhecida';
   };
+
+  const dates = useMemo(() => {
+    const uniqueDates = [...new Set(orders.map(o => o.deliveryDate))];
+    return uniqueDates.sort((a, b) => a.localeCompare(b));
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    return orders
+      .filter(order => {
+        const matchesCity = selectedCity === 'all' || order.cityId === selectedCity;
+        const matchesDate = selectedDate === 'all' || order.deliveryDate === selectedDate;
+        const matchesSearch = 
+          order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.customerPhone.includes(searchTerm);
+        return matchesCity && matchesDate && matchesSearch;
+      })
+      .sort((a, b) => {
+        // Sort by date first, then time
+        if (a.deliveryDate !== b.deliveryDate) {
+          return a.deliveryDate.localeCompare(b.deliveryDate);
+        }
+        return a.deliveryTime.localeCompare(b.deliveryTime);
+      });
+  }, [orders, selectedCity, selectedDate, searchTerm]);
+
+  const stats = useMemo(() => {
+    const total = filteredOrders.length;
+    const revenue = filteredOrders.filter(o => o.status !== 'cancelado').reduce((acc, o) => acc + o.total, 0);
+    return { total, revenue };
+  }, [filteredOrders]);
 
   const sendToWhatsApp = (order: Order) => {
     const itemsText = order.items.map(i => `• ${i.quantity}x ${i.name}`).join('\n');
@@ -20,7 +53,12 @@ export default function AdminOrders() {
       ? `Local (Suzano - ${order.distanceKm?.toFixed(1)}km)`
       : `Rota (${getCityName(order.cityId)})`;
     
-    const text = `Olá ${order.customerName}! Referente ao seu pedido:\n\n${itemsText}\n\nTotal: R$ ${order.total.toFixed(2)}\nEntrega: ${deliveryInfo}\nData: ${order.deliveryDate} às ${order.deliveryTime}\nEndereço: ${order.address}\n\nStatus Atual: *${order.status.toUpperCase()}*`;
+    let text = `Olá ${order.customerName}! Referente ao seu pedido:\n\n${itemsText}\n\nTotal: R$ ${order.total.toFixed(2)}\nEntrega: ${deliveryInfo}\nData: ${order.deliveryDate} às ${order.deliveryTime}\nEndereço: ${order.address}\n\nStatus Atual: *${order.status.toUpperCase()}*`;
+    
+    if (order.status === 'entregue') {
+      text += `\n\nFicamos muito felizes em te atender! Se puder postar um story e nos marcar (@docurasdosid), isso nos ajuda imensamente a voltar mais vezes para sua cidade! ❤️`;
+    }
+
     const url = `https://wa.me/55${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
@@ -34,17 +72,71 @@ export default function AdminOrders() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Pedidos</h1>
-        <p className="text-gray-500">Gerencie e acompanhe todas as vendas.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Pedidos</h1>
+          <p className="text-gray-500">Gerencie e organize suas rotas de entrega.</p>
+        </div>
+        <div className="flex gap-4">
+          <div className="bg-white px-4 py-2 rounded-2xl border border-gray-100 shadow-sm">
+            <p className="text-[10px] font-bold text-gray-400 uppercase">Filtrados</p>
+            <p className="text-xl font-display font-bold text-brand-brown">{stats.total} pedidos</p>
+          </div>
+          <div className="bg-white px-4 py-2 rounded-2xl border border-gray-100 shadow-sm">
+            <p className="text-[10px] font-bold text-gray-400 uppercase">Faturamento</p>
+            <p className="text-xl font-display font-bold text-brand-orange">R$ {stats.revenue.toFixed(2)}</p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {orders.sort((a, b) => {
-          const timeA = a.createdAt?.seconds || 0;
-          const timeB = b.createdAt?.seconds || 0;
-          return timeB - timeA;
-        }).map((order) => {
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex-grow relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar por cliente ou telefone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-brand-orange/20"
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 lg:w-auto">
+            <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-2xl min-w-[200px]">
+              <MapPin size={18} className="text-gray-400" />
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="bg-transparent border-none focus:ring-0 text-sm font-bold w-full"
+              >
+                <option value="all">Todas as Cidades</option>
+                <option value="local">Suzano (Local)</option>
+                {cities.map(city => (
+                  <option key={city.id} value={city.id}>{city.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-2xl min-w-[200px]">
+              <Calendar size={18} className="text-gray-400" />
+              <select
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent border-none focus:ring-0 text-sm font-bold w-full"
+              >
+                <option value="all">Todas as Datas</option>
+                {dates.map(date => (
+                  <option key={date} value={date}>
+                    {format(new Date(date + 'T12:00:00'), "dd 'de' MMMM", { locale: ptBR })}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {filteredOrders.map((order) => {
           const StatusIcon = statusIcons[order.status].icon;
           return (
             <div key={order.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden group">
@@ -148,10 +240,16 @@ export default function AdminOrders() {
             </div>
           );
         })}
-        {!loading && orders.length === 0 && (
+        {!loading && filteredOrders.length === 0 && (
           <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
             <ShoppingBag size={48} className="mx-auto text-gray-200 mb-4" />
-            <p className="text-gray-400 font-medium">Nenhum pedido realizado ainda.</p>
+            <p className="text-gray-400 font-medium">Nenhum pedido encontrado para os filtros selecionados.</p>
+            <button 
+              onClick={() => { setSelectedCity('all'); setSelectedDate('all'); setSearchTerm(''); }}
+              className="mt-4 text-brand-orange font-bold text-sm"
+            >
+              Limpar todos os filtros
+            </button>
           </div>
         )}
       </div>

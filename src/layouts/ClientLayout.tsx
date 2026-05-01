@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, Home, Store, MessageSquare, Newspaper, Instagram, ArrowRight, ShoppingBag } from 'lucide-react';
 import { CartProvider, useCart } from '../components/CartProvider';
+import { ToastProvider, useToast } from '../components/ToastProvider';
 import { useDocument } from '../hooks/useFirestore';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatWhatsAppUrl } from '../lib/utils';
-import { Toast } from '../components/Toast';
+// removed Toast import
 
 const Header = () => {
   const { itemCount } = useCart();
@@ -199,15 +200,15 @@ const Footer = () => (
 const ClientLayoutContent = () => {
   const location = useLocation();
   const { itemCount } = useCart();
+  const { showToast } = useToast();
   const [prevCount, setPrevCount] = useState(itemCount);
-  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     if (itemCount > prevCount) {
-      setShowToast(true);
+      showToast("Produto adicionado ao seu carrinho!", "success");
     }
     setPrevCount(itemCount);
-  }, [itemCount, prevCount]);
+  }, [itemCount, prevCount, showToast]);
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-cream overflow-x-hidden">
@@ -229,11 +230,6 @@ const ClientLayoutContent = () => {
       <MobileNav />
       <WhatsAppButton />
       <FloatingCart />
-      <Toast 
-        isVisible={showToast} 
-        message="Produto adicionado ao seu carrinho!" 
-        onClose={() => setShowToast(false)} 
-      />
     </div>
   );
 };
@@ -241,7 +237,9 @@ const ClientLayoutContent = () => {
 export default function ClientLayout() {
   return (
     <CartProvider>
-      <ClientLayoutContent />
+      <ToastProvider>
+        <ClientLayoutContent />
+      </ToastProvider>
     </CartProvider>
   );
 }

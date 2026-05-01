@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { 
   collection, query, onSnapshot, 
   addDoc, updateDoc, deleteDoc, doc, 
-  QueryConstraint, serverTimestamp, setDoc
+  QueryConstraint, serverTimestamp, setDoc,
+  increment
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 
-enum OperationType {
+export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
   DELETE = 'delete',
@@ -15,7 +16,7 @@ enum OperationType {
   WRITE = 'write',
 }
 
-interface FirestoreErrorInfo {
+export interface FirestoreErrorInfo {
   error: string;
   operationType: OperationType;
   path: string | null;
@@ -27,7 +28,7 @@ interface FirestoreErrorInfo {
   }
 }
 
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
@@ -129,7 +130,11 @@ export function useDocument<T>(collectionName: string, documentId: string) {
   }, [collectionName, documentId]);
 
   const save = async (item: Partial<T>) => {
-    return await setDoc(doc(db, collectionName, documentId), item as any, { merge: true });
+    try {
+      return await setDoc(doc(db, collectionName, documentId), item as any, { merge: true });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `${collectionName}/${documentId}`);
+    }
   };
 
   return { data, loading, error, save };
