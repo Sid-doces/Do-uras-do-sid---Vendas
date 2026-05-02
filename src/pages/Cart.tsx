@@ -57,18 +57,27 @@ export default function Cart() {
   const deliveryFee = deliveryType === 'local' && distance !== null ? getDistancePrice(distance) : 0;
   const finalTotal = total + deliveryFee;
 
-  // Generate next 30 days
-  const availableDates = Array.from({ length: 30 }, (_, i) => addDays(new Date(), i + 1));
+  // Generate next 60 days starting from TODAY (i) instead of tomorrow (i + 1)
+  const today = new Date();
+  const availableDates = Array.from({ length: 60 }, (_, i) => addDays(today, i));
   
   const filteredDates = availableDates.filter(date => {
-    // Local delivery always available (Sundays off by default or based on shop)
-    if (deliveryType === 'local') return getDay(date) !== 0; // No sunday
-    
-    if (!selectedCity) return false;
     const dayOfWeek = getDay(date);
     const dateStr = format(date, 'yyyy-MM-dd');
-    const isRecurring = selectedCity.deliveryDays.includes(dayOfWeek);
+
+    // Local delivery always available (Sundays off by default)
+    if (deliveryType === 'local') {
+      // Don't show today if it's already late (e.g., after 18h)? 
+      // For now, let's just make sure Sunday is blocked and it's not in the past
+      return dayOfWeek !== 0; 
+    }
+    
+    if (!selectedCity) return false;
+    
+    const deliveryDays = (selectedCity.deliveryDays || []).map(d => Number(d));
+    const isRecurring = deliveryDays.includes(dayOfWeek);
     const isSpecific = selectedCity.specificDates?.includes(dateStr);
+    
     return isRecurring || isSpecific;
   });
 
@@ -387,21 +396,30 @@ export default function Cart() {
                     value={formData.deliveryDate}
                     onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
                   >
-                    <option value="">Selecione a data</option>
+                    <option value="">{filteredDates.length > 0 ? "Selecione a data" : "Nenhuma data disponível para esta opção"}</option>
                     {filteredDates.map(date => (
                       <option key={date.toISOString()} value={format(date, 'yyyy-MM-dd')}>
                         {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                       </option>
                     ))}
                   </select>
+                  {deliveryType === 'city' && formData.cityId && filteredDates.length === 0 && (
+                    <p className="mt-2 text-xs text-red-500 font-bold">
+                      Atenção: Não encontramos datas de entrega programadas para esta cidade nos próximos 60 dias. Entre em contato conosco!
+                    </p>
+                  )}
                 </div>
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-bold text-gray-700 mb-2">Horário</label>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                    {(deliveryType === 'local' ? ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'] : selectedCity?.availableHours || []).map(time => (
+                    {(deliveryType === 'local' 
+                        ? ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'] 
+                        : (selectedCity?.availableHours?.length ? selectedCity.availableHours : ['09:00', '11:00', '14:00', '16:00'])
+                    ).map(time => (
                       <button
                         key={time}
+                        type="button"
                         onClick={() => setFormData({ ...formData, deliveryTime: time })}
                         className={`py-3 rounded-xl text-sm font-bold border transition-all ${
                           formData.deliveryTime === time 
@@ -413,6 +431,9 @@ export default function Cart() {
                       </button>
                     ))}
                   </div>
+                  {deliveryType === 'city' && selectedCity && !selectedCity.availableHours?.length && (
+                    <p className="mt-2 text-[10px] text-gray-400 italic">Exibindo horários padrão de entrega.</p>
+                  )}
                 </div>
               </div>
 
