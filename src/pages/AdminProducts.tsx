@@ -65,6 +65,17 @@ export default function AdminProducts() {
     setEditingProduct(null);
   };
 
+  const handleDelete = async (id: string, name: string) => {
+    if (window.confirm(`Tem certeza que deseja excluir o produto "${name}"?`)) {
+      try {
+        await remove(id);
+        showToast('Produto excluído com sucesso!', 'success');
+      } catch (error) {
+        showToast('Erro ao excluir produto.', 'error');
+      }
+    }
+  };
+
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
@@ -170,7 +181,7 @@ export default function AdminProducts() {
                       <button onClick={() => openModal(p)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg">
                         <Edit2 size={18} />
                       </button>
-                      <button onClick={() => remove(p.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                      <button onClick={() => handleDelete(p.id, p.name)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
                         <Trash2 size={18} />
                       </button>
                     </div>

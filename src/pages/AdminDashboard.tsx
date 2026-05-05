@@ -1,8 +1,24 @@
 import React from 'react';
-import { ShoppingBag, DollarSign, Clock, Package, MapPin } from 'lucide-react';
+import { ShoppingBag, DollarSign, Clock, Package, MapPin, TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
 import { useCollection, useDocument } from '../hooks/useFirestore';
 import { Order, Product, Settings, City } from '../types';
-import { format } from 'date-fns';
+import { format, subDays, isSameDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell,
+  Legend
+} from 'recharts';
+
+const COLORS = ['#D97706', '#92400E', '#78350F', '#F59E0B', '#FBBF24', '#FCD34D'];
 
 export default function AdminDashboard() {
   const { data: orders } = useCollection<Order>('orders');
@@ -41,6 +57,32 @@ export default function AdminDashboard() {
     }, {})
   ).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
+  const last7DaysData = Array.from({ length: 7 }, (_, i) => {
+    const d = subDays(new Date(), 6 - i);
+    const dateStr = format(d, 'yyyy-MM-dd');
+    const dayOrders = orders.filter(o => {
+      if (!o.createdAt) return false;
+      return format(o.createdAt.toDate(), 'yyyy-MM-dd') === dateStr;
+    });
+    return {
+      name: format(d, 'dd/MM', { locale: ptBR }),
+      faturamento: dayOrders.reduce((acc, o) => acc + o.total, 0),
+      pedidos: dayOrders.length
+    };
+  });
+
+  const cityPieData = Object.entries(
+    orders.reduce((acc: Record<string, number>, order) => {
+      const cityName = order.cityId === 'local' 
+        ? 'Local' 
+        : (cities.find(c => c.id === order.cityId)?.name || 'Outros');
+      acc[cityName] = (acc[cityName] || 0) + 1;
+      return acc;
+    }, {})
+  ).map(([name, value]) => ({ name, value }))
+   .sort((a, b) => b.value - a.value)
+   .slice(0, 6);
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -66,6 +108,81 @@ export default function AdminDashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <TrendingUp className="text-brand-orange" size={20} />
+              Faturamento (Últimos 7 dias)
+            </h3>
+          </div>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={last7DaysData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 12, fill: '#94a3b8' }}
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 12, fill: '#94a3b8' }}
+                  tickFormatter={(value) => `R$${value}`}
+                />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ 
+                    borderRadius: '16px', 
+                    border: 'none', 
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    fontSize: '12px'
+                  }}
+                />
+                <Bar 
+                  dataKey="faturamento" 
+                  fill="#D97706" 
+                  radius={[4, 4, 0, 0]} 
+                  animationDuration={1500}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+            <PieChartIcon className="text-brand-brown" size={20} />
+            Pedidos por Cidade
+          </h3>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={cityPieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {cityPieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

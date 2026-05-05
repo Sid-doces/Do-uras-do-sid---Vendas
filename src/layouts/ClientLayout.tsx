@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Home, Store, MessageSquare, Newspaper, Instagram, ArrowRight, ShoppingBag } from 'lucide-react';
 import { CartProvider, useCart } from '../components/CartProvider';
 import { ToastProvider, useToast } from '../components/ToastProvider';
@@ -162,40 +162,64 @@ const MobileNav = () => {
   );
 };
 
-const Footer = () => (
-  <footer className="bg-brand-brown text-brand-beige pt-12 pb-24 md:pb-12">
-    <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
-      <div>
-        <h3 className="text-2xl font-bold mb-4">Doçuras do Sid</h3>
-        <p className="text-brand-beige/80">
-          A melhor Torta de Manteiga Escocesa da região. Artesanal, fresca e feita com amor.
-        </p>
-      </div>
-      <div>
-        <h4 className="font-bold mb-4">Links</h4>
-        <div className="flex flex-col gap-2">
-          <Link to="/loja" className="hover:text-brand-orange transition-colors">Loja</Link>
-          <Link to="/avaliacoes" className="hover:text-brand-orange transition-colors">Avaliações</Link>
-          <Link to="/novidades" className="hover:text-brand-orange transition-colors">Novidades</Link>
+const Footer = () => {
+  const navigate = useNavigate();
+  const [clickCount, setClickCount] = useState(0);
+  const [lastClick, setLastClick] = useState(0);
+
+  const handleSecretClick = () => {
+    const now = Date.now();
+    if (now - lastClick < 500) {
+      if (clickCount + 1 >= 5) {
+        navigate('/admin/login');
+        setClickCount(0);
+      } else {
+        setClickCount(prev => prev + 1);
+      }
+    } else {
+      setClickCount(1);
+    }
+    setLastClick(now);
+  };
+
+  return (
+    <footer className="bg-brand-brown text-brand-beige pt-12 pb-24 md:pb-12">
+      <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div>
+          <h3 className="text-2xl font-bold mb-4">Doçuras do Sid</h3>
+          <p className="text-brand-beige/80">
+            A melhor Torta de Manteiga Escocesa da região. Artesanal, fresca e feita com amor.
+          </p>
+        </div>
+        <div>
+          <h4 className="font-bold mb-4">Links</h4>
+          <div className="flex flex-col gap-2">
+            <Link to="/loja" className="hover:text-brand-orange transition-colors">Loja</Link>
+            <Link to="/avaliacoes" className="hover:text-brand-orange transition-colors">Avaliações</Link>
+            <Link to="/novidades" className="hover:text-brand-orange transition-colors">Novidades</Link>
+          </div>
+        </div>
+        <div>
+          <h4 className="font-bold mb-4">Redes Sociais</h4>
+          <div className="flex gap-4">
+            <a href="#" className="p-2 bg-brand-orange/20 rounded-lg hover:bg-brand-orange/40 transition-colors">
+              <Instagram size={20} />
+            </a>
+            <a href="#" className="p-2 bg-brand-orange/20 rounded-lg hover:bg-brand-orange/40 transition-colors">
+              <MessageSquare size={20} />
+            </a>
+          </div>
         </div>
       </div>
-      <div>
-        <h4 className="font-bold mb-4">Redes Sociais</h4>
-        <div className="flex gap-4">
-          <a href="#" className="p-2 bg-brand-orange/20 rounded-lg hover:bg-brand-orange/40 transition-colors">
-            <Instagram size={20} />
-          </a>
-          <a href="#" className="p-2 bg-brand-orange/20 rounded-lg hover:bg-brand-orange/40 transition-colors">
-            <MessageSquare size={20} />
-          </a>
-        </div>
+      <div 
+        className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-brand-beige/10 text-center text-sm text-brand-beige/60 select-none cursor-default"
+        onClick={handleSecretClick}
+      >
+        © {new Date().getFullYear()} Doçuras do Sid. Todos os direitos reservados.
       </div>
-    </div>
-    <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-brand-beige/10 text-center text-sm text-brand-beige/60">
-      © {new Date().getFullYear()} Doçuras do Sid. Todos os direitos reservados.
-    </div>
-  </footer>
-);
+    </footer>
+  );
+};
 
 const ClientLayoutContent = () => {
   const location = useLocation();

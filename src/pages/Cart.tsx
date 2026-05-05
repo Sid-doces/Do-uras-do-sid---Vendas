@@ -7,7 +7,7 @@ import { db } from '../lib/firebase';
 import { City, Settings, Order, DeliveryRange } from '../types';
 import { ShoppingBag, Trash2, Plus, Minus, MapPin, Calendar, Clock, ArrowRight, MessageSquare, CheckCircle, Navigation, Loader2, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { format, addDays, isSameDay, getDay } from 'date-fns';
+import { format, addDays, isSameDay, getDay, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatWhatsAppUrl } from '../lib/utils';
 
@@ -58,7 +58,8 @@ export default function Cart() {
   const finalTotal = total + deliveryFee;
 
   // Generate next 60 days starting from TODAY (i) instead of tomorrow (i + 1)
-  const today = new Date();
+  // We use startOfDay to ensure "today" is always considered from 00:00
+  const today = startOfDay(new Date());
   const availableDates = Array.from({ length: 60 }, (_, i) => addDays(today, i));
   
   const filteredDates = availableDates.filter(date => {

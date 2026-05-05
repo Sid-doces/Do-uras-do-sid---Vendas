@@ -1,16 +1,64 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useCollection } from '../hooks/useFirestore';
 import { Order, City } from '../types';
-import { ShoppingBag, Phone, MapPin, Calendar, Clock, MessageSquare, CheckCircle, Truck, XCircle, Filter, Search, ChevronRight } from 'lucide-react';
+import { ShoppingBag, Phone, MapPin, Calendar, Clock, MessageSquare, CheckCircle, Truck, XCircle, Filter, Search, ChevronRight, Bell, BellOff, Volume2, VolumeX, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast, Toaster } from 'sonner';
 
 export default function AdminOrders() {
-  const { data: orders, update, loading } = useCollection<Order>('orders');
+  const { data: orders, update, remove, loading } = useCollection<Order>('orders');
   const { data: cities } = useCollection<City>('cities');
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [selectedDate, setSelectedDate] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [soundEnabled, setSoundEnabled] = useState(false);
+
+  const previousOrderIds = useRef<Set<string>>(new Set());
+  const initialLoadDone = useRef(false);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const currentIds = new Set(orders.map(o => o.id));
+
+    // On first load, just record the existing IDs
+    if (!initialLoadDone.current) {
+      previousOrderIds.current = currentIds;
+      initialLoadDone.current = true;
+      return;
+    }
+
+    // Check for new IDs
+    const newAddedIds = [...currentIds].filter(id => !previousOrderIds.current.has(id));
+
+    if (newAddedIds.length > 0) {
+      const newOrder = orders.find(o => o.id === newAddedIds[0]);
+      if (newOrder) {
+        toast.success(`Novo pedido recebido!`, {
+          description: `${newOrder.customerName} - R$ ${newOrder.total.toFixed(2)}`,
+          action: {
+            label: 'Ver Pedido',
+            onClick: () => {
+              const element = document.getElementById(`order-${newOrder.id}`);
+              element?.scrollIntoView({ behavior: 'smooth' });
+            }
+          },
+          duration: 10000,
+        });
+
+        if (soundEnabled) {
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+          audio.play().catch(() => {
+            // Browsers often block auto-play until user interaction
+            console.log('Audio notification blocked by browser');
+          });
+        }
+      }
+    }
+
+    previousOrderIds.current = currentIds;
+  }, [orders, loading, soundEnabled]);
 
   const getCityName = (id: string) => {
     if (id === 'local') return 'Suzano (Local)';
@@ -77,7 +125,20 @@ export default function AdminOrders() {
           <h1 className="text-3xl font-bold text-gray-900">Pedidos</h1>
           <p className="text-gray-500">Gerencie e organize suas rotas de entrega.</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl border border-gray-100 shadow-sm transition-all ${
+              soundEnabled ? 'bg-green-50 text-green-600 border-green-100' : 'bg-white text-gray-400'
+            }`}
+            title={soundEnabled ? "Notificações sonoras ativadas" : "Ativar notificações sonoras"}
+          >
+            {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+            <span className="text-xs font-bold uppercase hidden sm:inline">
+              Som {soundEnabled ? 'ON' : 'OFF'}
+            </span>
+          </button>
+
           <div className="bg-white px-4 py-2 rounded-2xl border border-gray-100 shadow-sm">
             <p className="text-[10px] font-bold text-gray-400 uppercase">Filtrados</p>
             <p className="text-xl font-display font-bold text-brand-brown">{stats.total} pedidos</p>
@@ -139,7 +200,11 @@ export default function AdminOrders() {
         {filteredOrders.map((order) => {
           const StatusIcon = statusIcons[order.status].icon;
           return (
-            <div key={order.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden group">
+            <div 
+              key={order.id} 
+              id={`order-${order.id}`}
+              className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden group transition-all duration-300 hover:shadow-md"
+            >
               <div className="p-6 flex flex-col md:flex-row gap-6">
                 <div className="flex-grow space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -224,7 +289,7 @@ export default function AdminOrders() {
                     
                     <div className="grid grid-cols-2 gap-2">
                       <select
-                        className="col-span-2 py-2 px-3 bg-white border border-gray-200 rounded-xl text-xs font-bold"
+                        className={`${order.status === 'cancelado' ? 'col-span-1' : 'col-span-2'} py-2 px-3 bg-white border border-gray-200 rounded-xl text-xs font-bold`}
                         value={order.status}
                         onChange={(e) => update(order.id, { status: e.target.value as any })}
                       >
@@ -233,6 +298,25 @@ export default function AdminOrders() {
                         <option value="entregue">Entregue</option>
                         <option value="cancelado">Cancelado</option>
                       </select>
+                      {order.status === 'cancelado' && (
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('Tem certeza que deseja excluir permanentemente este pedido cancelado?')) {
+                              try {
+                                await remove(order.id);
+                                toast.success('Pedido excluído com sucesso');
+                              } catch (error) {
+                                toast.error('Erro ao excluir pedido');
+                                console.error(error);
+                              }
+                            }
+                          }}
+                          className="flex items-center justify-center p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors"
+                          title="Excluir pedido"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -253,6 +337,7 @@ export default function AdminOrders() {
           </div>
         )}
       </div>
+      <Toaster position="top-right" richColors />
     </div>
   );
 }
